@@ -11,7 +11,10 @@ COMMAND_PASS  = "pass"
 DIRECTIONS = { (-1,  0) : COMMAND_LEFT,
                ( 1,  0) : COMMAND_RIGHT,
                ( 0, -1) : COMMAND_UP,
-               ( 0,  1) : COMMAND_DOWN }
+               ( 0,  1) : COMMAND_DOWN,
+               ( 0,  0) : COMMAND_PASS }
+# reversed-lookup directions        
+RDIRECTIONS = dict((v,k) for (k,v) in DIRECTIONS.items())
 
 STATUS_DEAD = "out"
 
@@ -24,18 +27,44 @@ BOMB_MAX_PER_PLAYER = 5
 BOMB_MAX_TICK       = 25
 BOMB_MIN_TICK       = 5
 
-class Player(object):
+class BoardObject(object):
+    def __init__(self):
+        pass
+    
+    def __repr__(self):
+        return "%s: %s"%(self.__class__.__name__, "(%s,%s)"%(self.x, self.y))
+        
+    def get_coord_tuple(self):
+        return "(%s,%s)"%(self.x, self.y)
+
+class Player(BoardObject):
     def __init__(self, id, x, y):
         self.id = id
         self.x = x
         self.y = y
         
-class Bomb(object):
+class Bomb(BoardObject):
     def __init__(self, player_id, x, y, tick):
         self.player_id = player_id
         self.x = x
         self.y = y
         self.tick = tick
+    
+    # bombs at the same loc are treated equal
+    def __eq__(self, other):
+        return (self.x,self.y) == (other.x,other.y)
+        
+    def __hash__(self):
+        return hash((self.x,self.y))
+        
+    def get_blast_wave(self, blast_range):
+        wave = set()
+        for delta in range(blast_range+1):
+            wave.add((self.x+delta,self.y))
+            wave.add((self.x-delta,self.y))
+            wave.add((self.x,self.y+delta))
+            wave.add((self.x,self.y-delta))
+        return wave
 
 class Board(object):
     def __init__(self, board):
@@ -50,23 +79,60 @@ class Board(object):
     def is_floor(self, x, y):
         return self.tile_at(x, y) == TILE_FLOOR
 
-# TODO: Implement a smarter strategy than randomness
+# TODO: Create greatest robot ever programmed
 class Robot(object):
     def __init__(self, my_id, max_turns):
         self.my_id = my_id
 
     def play_round(self, state):
         (board, alive_players, bombs, previous_actions) = state
-        me = get_player_with_id(self.my_id, alive_players)
+        self.me = get_player_with_id(self.my_id, alive_players)
 
-        possible_commands = [COMMAND_PASS]
-        possible_commands.extend(get_possible_moves(me, board, bombs))
+        possible_commands = []
+        possible_commands.extend(get_possible_moves(self.me, board, bombs))
         
-        if(len(get_bombs_for_player(self.my_id, bombs)) < BOMB_MAX_PER_PLAYER):
-            possible_commands.append(random.randint(BOMB_MIN_TICK, BOMB_MAX_TICK))
+        # dont place out bombs
+        # if(len(get_bombs_for_player(self.my_id, bombs)) < BOMB_MAX_PER_PLAYER):
+        #     possible_commands.append(random.randint(BOMB_MIN_TICK, BOMB_MAX_TICK))
 
         log("Possible commands: %s"%possible_commands)
+        # random fjantom
+        # possible_commands[random.randint(0, len(possible_commands) - 1)]
+        
+        # Rule 1: defend your ass
+        defend_state = (bombs, possible_commands)
+        return self.defend(defend_state)
+        
+    def defend(self, state):
+        (bombs, possible_commands) = state
+        log(possible_commands)
+        
+        if not bombs:
+            log("No bombs. Stop running Forest!")
+            return "pass"
+        
+        bombs.sort(key=lambda bomb: bomb.x)
+        log("Defending. Bombs at %s"%bombs)
+        
+        
+        blast_paths = set()
+        # if dupl. bombs
+        multi = True if len(set(bombs)) != len(bombs) else False
+        for bomb in set(bombs):
+            # calc range
+            count = [1,len([dupl for dupl in bombs if dupl == bomb])][multi]
+            blast_range = 2 + count
+            
+            # collect blast paths
+            [blast_paths.add(blast) for blast in bomb.get_blast_wave(blast_range)]
+        
+        for move in possible_commands:
+            if not (self.me.x+RDIRECTIONS[move][0], self.me.y+RDIRECTIONS[move][1]) in blast_paths:
+                return move
+        
+        # else just make a move
         return possible_commands[random.randint(0, len(possible_commands) - 1)]
+        
 
 class Action(object):
     def __init__(self, player_id, action_string):
@@ -134,7 +200,7 @@ def read_state(height, player_count):
     return (board, alive_players, bombs, previous_actions)
 
 def log(message):
-    print >> stderr, message.rstrip()
+    print >> stderr, str(message).rstrip()
 
 def write_command(command):
     command_str = str(command)
