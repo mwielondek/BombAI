@@ -116,7 +116,7 @@ def get_best_move(player, board, bombs, blast_paths):
     return best_move
 
 def get_safe_move(comp, loc, possible_moves, safelist=[], move_history=[], deep=0):
-    if deep < 5:
+    if deep < 7:
         (board, bombs, blast_paths) = comp
         for move in possible_moves:
             move_history_branch = move_history[:]

@@ -56,10 +56,6 @@ class Robot(object):
                 return move
         
         # if no single move guarantees safety, look for closest safe spot
-        # free_tiles = get_free_tiles(board, bombs)
-        # safe_spots = free_tiles - blast_paths
-        # 
-        # closest_safe_spot = get_closest(self.me.loc,safe_spots)
         best_move = get_best_move(self.me, board, bombs, blast_paths)
         log("best escape strategy: %s"%best_move)
         
@@ -69,7 +65,9 @@ class Robot(object):
         
         # else fall back to randomness, except pass
         log("RoboPanick! Choosing move at random.")
-        return possible_commands[random.randint(0, len(possible_commands) - 1)]
+        if possible_commands:
+            return possible_commands[random.randint(0, len(possible_commands) - 1)]
+        return "pass"
 
 def run():
     log("Starting robot")
