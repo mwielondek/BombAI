@@ -104,7 +104,16 @@ def get_closest(x, list):
 def get_best_move(player, board, bombs, blast_paths):
     pc = get_possible_moves(player.loc, board, bombs)
     safelist = get_safe_move((board, bombs, blast_paths), player.loc, pc)
-    return min(safelist) if safelist else None
+    log("safelist: %s"%safelist)
+    
+    if not safelist:
+        return None
+        
+    best_move = safelist[0]
+    for moves in safelist:
+        if len(moves) < len(best_move):
+            best_move = moves
+    return best_move
 
 def get_safe_move(comp, loc, possible_moves, safelist=[], move_history=[], deep=0):
     if deep < 5:
