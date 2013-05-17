@@ -42,8 +42,14 @@ class Bomb(Positionable):
         for delta in range(blast_range+1):
             for d in [delta,-delta]:
                 wave.add(self.loc + Location(d,0))
-                wave.add(self.loc + Location(0,d))
+                wave.add(self.loc + Location(0,d))      
         return wave
+        
+    def __eq__(self, other):
+        return (self.x,self.y) == (other.x,other.y)
+        
+    def __hash__(self):
+        return hash((self.x,self.y))
 
 class Board(object):
     def __init__(self, board):
