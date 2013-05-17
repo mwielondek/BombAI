@@ -10,11 +10,8 @@ class Robot(object):
         (board, alive_players, bombs, previous_actions) = state
         self.me = get_player_with_id(self.my_id, alive_players)
         
-        # get possible commands and put pass first
-        possible_commands = get_possible_moves(self.me, board, bombs)
-        pc = possible_commands
-        possible_commands.insert(0, pc.pop(pc.index("pass")))
-        del pc
+        # get possible commands
+        possible_commands = get_possible_moves(self.me.loc, board, bombs)
         
         # dont place out bombs.. yet.
         # if(len(get_bombs_for_player(self.my_id, bombs)) < BOMB_MAX_PER_PLAYER):
@@ -25,12 +22,11 @@ class Robot(object):
         # possible_commands[random.randint(0, len(possible_commands) - 1)]
         
         # Rule 1: defend your ass
-        defend_state = (bombs, possible_commands)
+        defend_state = (board, bombs, possible_commands)
         return self.defend(defend_state)
         
     def defend(self, state):
-        (bombs, possible_commands) = state
-        log(possible_commands)
+        (board, bombs, possible_commands) = state
         
         if not bombs:
             log("No bombs. Stop running Forest!")
@@ -51,12 +47,29 @@ class Robot(object):
             # collect blast paths
             [blast_paths.add(blast) for blast in bomb.get_blast_wave(blast_range)]
         
+        if not self.me.loc in blast_paths:
+            log("Not in blast path, chillax.")
+            return "pass"
+        
         for move in possible_commands:
-            if not (self.me.x+RDIRECTIONS[move][0], self.me.y+RDIRECTIONS[move][1]) in blast_paths:
+            if not self.me.loc + RDIRECTIONS[move] in blast_paths:
                 return move
         
-        # else just make a move, except pass
-        return possible_commands[random.randint(1, len(possible_commands) - 1)]
+        # if no single move guarantees safety, look for closest safe spot
+        # free_tiles = get_free_tiles(board, bombs)
+        # safe_spots = free_tiles - blast_paths
+        # 
+        # closest_safe_spot = get_closest(self.me.loc,safe_spots)
+        best_move = get_best_move(self.me, board, bombs, blast_paths)
+        log("best escape strategy: %s"%best_move)
+        
+        # make the first move
+        if best_move:
+            return best_move[0]
+        
+        # else fall back to randomness, except pass
+        log("RoboPanick! Choosing move at random.")
+        return possible_commands[random.randint(0, len(possible_commands) - 1)]
 
 def run():
     log("Starting robot")
@@ -69,7 +82,10 @@ def run():
 
     robot = Robot(player_id, max_turns)
     state = read_state(height, player_count)
+    counter = 0
     while state:
+        counter += 1
+        log("Round %s"%counter)
         command = robot.play_round(state)
         write_command(command)
         state = read_state(height, player_count)
