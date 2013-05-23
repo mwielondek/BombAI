@@ -86,5 +86,4 @@ class Round(object):
                 # collect blast paths
                 [blast_paths.add(blast) for blast in bomb.get_blast_wave(blast_range) if bomb.tick <= ticks]
             self.blast_paths[ticks] = blast_paths
-            print("blast paths for %s is %s"%(ticks,blast_paths))
         return self.blast_paths[ticks]
