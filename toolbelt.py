@@ -76,6 +76,8 @@ def AssureSafe(func):
             for i in reversed(range(1,4)):
                 best_move = get_best_move(me, args[1], ticks=i)
                 if check(best_move, me): return best_move
+                # if no best_move is found pass
+                ret = "pass"
         return ret
         
     def check(move, me):
