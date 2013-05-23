@@ -81,7 +81,7 @@ class Round(object):
                 # account for chain reactions
                 for other in bombs:
                     if other in bomb.get_blast_wave(bomb.blast_range):
-                        other.tick = bomb.tick
+                        other.tick = min(other.tick, bomb.tick)
             for bomb in set(bombs):
                 # collect blast paths
                 if bomb.tick <= ticks:

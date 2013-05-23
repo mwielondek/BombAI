@@ -81,7 +81,10 @@ def AssureSafe(func):
                 # try to find best move for 3,2,1 turns ahead
                 for i in reversed(range(1,4)):
                     best_move = get_best_move(me, args[1], ticks=i)
-                    if check(best_move, me): return best_move
+                    if check(best_move, me):
+                        log("Alternative best move (%s ticks): %s"%(i, best_move))
+                        return best_move
+                log("No other option - prepare to die...")
         return ret
         
     def check(move, me):
