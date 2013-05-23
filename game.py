@@ -1,9 +1,19 @@
 from board import *
 
+CURRENT_ROUND = None
+PLAYER_ID = -1
+ME = None
+
 class Player(Positionable):
     def __init__(self, id, x, y):
         self.id = id
         super(Player, self).__init__(x, y)
+        
+    def __eq__(self, other):
+        return self.id == other.id
+        
+    def is_alive(self):
+        return self in CURRENT_ROUND.state[1]
         
 class Bomb(Positionable):
     def __init__(self, player_id, x, y, tick):
@@ -34,3 +44,24 @@ class Action(object):
         except ValueError:
             self.action = action_string
             self.is_bomb = False
+            
+class Round(object):
+    def __init__(self, state, nr):
+        # (board, alive_players, bombs, previous_actions) = state
+        self.state = state
+        self.blast_paths = {}
+        
+    def get_blast_paths(self, ticks=25):
+        if ticks not in self.blast_paths:
+            bombs = self.state[2]
+            blast_paths = set()
+            # if dupl. bombs
+            multi = True if len(set(bombs)) != len(bombs) else False
+            for bomb in set(bombs):
+                # calc range
+                count = [1,len([dupl for dupl in bombs if dupl == bomb])][multi]
+                blast_range = 2 + count
+                # collect blast paths
+                [blast_paths.add(blast) for blast in bomb.get_blast_wave(blast_range) if bomb.tick <= ticks]
+            self.blast_paths[ticks] = blast_paths
+        return self.blast_paths[ticks]
