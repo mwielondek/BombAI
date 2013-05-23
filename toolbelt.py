@@ -12,34 +12,17 @@ def get_possible_moves(loc, board, bombs):
 def bomb_at(loc, bombs):
     return find(lambda bomb: bomb.loc == loc, bombs)
     
-# def get_free_tiles(board, bombs):
-#     tiles = set()
-#     for y,row in enumerate(board.board):
-#         for x,_ in enumerate(row):
-#             loc = Location(x,y)
-#             if(board.is_floor(loc) and not bomb_at(loc, bombs)):
-#                 tiles.add(loc)
-#     
-#     return tiles
-#     
-# def get_closest(x, list):
-#     closest = None
-#     for loc in list:
-#         log(len(x-loc))
-#     return closest
-    
 def get_best_move(player, state, ticks=25):
     safelist = get_safe_move(player.loc, state, ticks=ticks)
     
     if not safelist:
         return None
-        
     best_moves = safelist[0]
     for moves in safelist[1:]:
         if len(moves) < len(best_moves):
             best_moves = moves       
     # safelist is mutable, clear it!
-    del safelist
+    del safelist[:]
     return best_moves[0] if best_moves else None
 
 def get_safe_move(loc, state, safelist=[], move_history=[], deep=0, ticks=25):
@@ -51,7 +34,7 @@ def get_safe_move(loc, state, safelist=[], move_history=[], deep=0, ticks=25):
                 prev_move = move_history[-1]
                 possible_moves.remove(DIRECTIONS[-(RDIRECTIONS[prev_move])])
             except ValueError:
-                pass 
+                pass
         for move in possible_moves:
             if move == "pass": continue
             move_history_branch = move_history[:]
@@ -89,6 +72,7 @@ def AssureSafe(func):
         me = get_me()
         if not check(ret, me):
             log("Wanted to return \""+ret+"\" - blocked by I.S.A.S.")
+            # try to find best move for 3,2,1 turns ahead
             for i in reversed(range(1,4)):
                 best_move = get_best_move(me, args[1], ticks=i)
                 if check(best_move, me): return best_move

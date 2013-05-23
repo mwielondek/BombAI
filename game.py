@@ -23,10 +23,27 @@ class Bomb(Positionable):
         
     def get_blast_wave(self, blast_range):
         wave = set()
+        board = CURRENT_ROUND.state[0]
         for delta in range(blast_range+1):
-            for d in [delta,-delta]:
-                wave.add(self.loc + Location(d,0))
-                wave.add(self.loc + Location(0,d))      
+            newloc = self.loc + Location(delta,0)
+            wave.add(newloc)
+            if not board.is_floor(newloc):
+                break
+        for delta in range(blast_range+1):
+            newloc = self.loc + Location(-delta,0)
+            wave.add(newloc)
+            if not board.is_floor(newloc):
+                break
+        for delta in range(blast_range+1):
+            newloc = self.loc + Location(0,delta)
+            wave.add(newloc)
+            if not board.is_floor(newloc):
+                break
+        for delta in range(blast_range+1):
+            newloc = self.loc + Location(0,-delta)
+            wave.add(newloc)
+            if not board.is_floor(newloc):
+                break
         return wave
         
     def __eq__(self, other):

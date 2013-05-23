@@ -23,10 +23,6 @@ class Robot(object):
         possible_commands = get_possible_moves(self.me.loc, board, bombs)
         log("Possible commands: %s"%possible_commands)
         
-        # dont place out bombs.. yet.
-        # if(len(get_bombs_for_player(self.my_id, bombs)) < BOMB_MAX_PER_PLAYER):
-        #     possible_commands.append(random.randint(BOMB_MIN_TICK, BOMB_MAX_TICK))
-        
         # Rule 1: defend your ass
         defend_state = (board, bombs, possible_commands)
         return self.defend(defend_state, current_round)
