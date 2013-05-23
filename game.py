@@ -1,4 +1,5 @@
 from board import *
+from const import DEFAULT_TICKS
 
 CURRENT_ROUND = None
 PLAYER_ID = -1
@@ -19,6 +20,7 @@ class Bomb(Positionable):
     def __init__(self, player_id, x, y, tick):
         self.player_id = player_id
         self.tick = tick
+        self.ghost = False
         super(Bomb, self).__init__(x, y)
         
     def get_blast_wave(self, blast_range):
@@ -67,9 +69,11 @@ class Round(object):
         # (board, alive_players, bombs, previous_actions) = state
         self.state = state
         self.blast_paths = {}
+        for n in range(1,DEFAULT_TICKS+1):
+            self.get_blast_paths(n,False)
         
-    def get_blast_paths(self, ticks=25):
-        if ticks not in self.blast_paths:
+    def get_blast_paths(self, ticks=DEFAULT_TICKS, progressive=True):
+        def calc():
             bombs = self.state[2]
             blast_paths = set()
             # if dupl. bombs
@@ -77,13 +81,30 @@ class Round(object):
             for bomb in bombs:
                 # calc range
                 count = [1,len([dupl for dupl in bombs if dupl == bomb])][multi]
-                blast_range = 2 + count
+                bomb.blast_range = 2 + count
                 # account for chain reactions
                 for other in bombs:
-                    if other in bomb.get_blast_wave(blast_range):
-                        other.tick = bomb.tick
+                    if other in bomb.get_blast_wave(bomb.blast_range):
+                        other.tick = min(other.tick, bomb.tick)
             for bomb in set(bombs):
                 # collect blast paths
-                [blast_paths.add(blast) for blast in bomb.get_blast_wave(blast_range) if bomb.tick <= ticks]
-            self.blast_paths[ticks] = blast_paths
+                if bomb.tick == ticks:
+                    blast_paths.update([blast for blast in bomb.get_blast_wave(bomb.blast_range)])
+            return blast_paths
+        
+        def collect(ticks):
+            l = set()
+            for n in range(1,ticks+1):
+                l |= self.blast_paths[n]
+            return l
+        
+        if progressive:
+            if ticks == DEFAULT_TICKS:
+                if "progDefault" not in self.blast_paths:                
+                    self.blast_paths["progDefault"] = collect(DEFAULT_TICKS)
+                return self.blast_paths["progDefault"]
+            return collect(ticks)
+            
+        if ticks not in self.blast_paths:
+            self.blast_paths[ticks] = calc()
         return self.blast_paths[ticks]
