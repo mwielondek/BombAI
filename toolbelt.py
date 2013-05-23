@@ -6,8 +6,11 @@ def get_bombs_for_player(player_id, bombs):
     return [bomb for bomb in bombs if bomb.player_id == player_id]
 
 def get_possible_moves(loc, board, bombs):
-    return [DIRECTIONS[dloc] for dloc in DIRECTIONS.iterkeys()
-                if(board.is_floor(loc + dloc) and not bomb_at(loc + dloc, bombs))]
+    ret = [DIRECTIONS[dloc] for dloc in DIRECTIONS.iterkeys()
+                    if(board.is_floor(loc + dloc) and not bomb_at(loc + dloc, bombs))]
+    # in case standing on a bomb, pass is still a valid move
+    if "pass" not in ret: ret.insert(0, "pass")
+    return ret
 
 def bomb_at(loc, bombs):
     return find(lambda bomb: bomb.loc == loc, bombs)

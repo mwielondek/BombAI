@@ -1,4 +1,5 @@
 from board import Location
+from collections import OrderedDict
 
 COMMAND_LEFT  = "left"
 COMMAND_RIGHT = "right"
@@ -6,11 +7,13 @@ COMMAND_UP    = "up"
 COMMAND_DOWN  = "down"
 COMMAND_PASS  = "pass"
 
-DIRECTIONS = { Location(-1,  0) : COMMAND_LEFT,
-               Location( 1,  0) : COMMAND_RIGHT,
-               Location( 0, -1) : COMMAND_UP,
-               Location( 0,  1) : COMMAND_DOWN,
-               Location( 0,  0) : COMMAND_PASS }
+DIRECTIONS = OrderedDict((
+                        (Location( 0,  0), COMMAND_PASS),
+                        (Location(-1,  0), COMMAND_LEFT),
+                        (Location( 1,  0), COMMAND_RIGHT),
+                        (Location( 0, -1), COMMAND_UP),
+                        (Location( 0,  1), COMMAND_DOWN)
+                        ))
 
 # reversed-lookup directions        
 RDIRECTIONS = dict((v,k) for (k,v) in DIRECTIONS.items())
