@@ -70,17 +70,21 @@ def AssureSafe(func):
     def wrapper(*args):
         ret = func(*args)
         me = get_me()
-        if not check(ret, me):
-            log("Wanted to return \""+ret+"\" - blocked by I.S.A.S.")
-            # try to find best move for 3,2,1 turns ahead
-            for i in reversed(range(1,4)):
-                best_move = get_best_move(me, args[1], ticks=i)
-                if check(best_move, me): return best_move
-                # if no best_move is found pass
-                ret = "pass"
+        if me.is_alive():
+            if not check(ret, me):
+                log("Wanted to return \""+ret+"\" - blocked by I.S.A.S.")
+                # try to find best move for 3,2,1 turns ahead
+                for i in reversed(range(1,4)):
+                    best_move = get_best_move(me, args[1], ticks=i)
+                    if check(best_move, me): return best_move
+                    # if no best_move is found pass
+                    ret = "pass"
         return ret
         
     def check(move, me):
-        return loc_is_safe(me.loc + RDIRECTIONS[move], 1)
+        try:
+            return loc_is_safe(me.loc + RDIRECTIONS[move], 1)
+        except KeyError:
+            return False
         
     return wrapper
