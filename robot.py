@@ -36,7 +36,7 @@ class Robot(object):
         
         bombs.sort(key=lambda bomb: bomb.x)
         log("Bombs at %s"%bombs)
-        # log("Blast paths for next turn %s"%current_round.get_blast_paths(5))
+        # log("Blast paths for next turn %s"%current_round.get_blast_paths(1))
 
         if loc_is_safe(self.me.loc):
             log("Not in blast path, chillax.")
@@ -49,9 +49,16 @@ class Robot(object):
         
         # if no single move guarantees safety, look for closest safe spot
         best_move = get_best_move(self.me, current_round.state)
-        log("Calculated best move: %s"%best_move)
+        log("Calculated best move (25 ticks): %s"%best_move)
         if best_move:
             return best_move
+        
+        # check for closest safe spot but for less turns ahead
+        for i in reversed(range(1,6)):
+            best_move = get_best_move(self.me, current_round.state, i)
+            log("Calculated best move (%s ticks): %s"%(i, best_move))
+            if best_move:
+                return best_move
         
         # else fall back to randomness, except pass
         log("Robot Panic! Choosing move at random.")

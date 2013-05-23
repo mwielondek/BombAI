@@ -23,6 +23,7 @@ def get_best_move(player, state, ticks=25):
             best_moves = moves       
     # safelist is mutable, clear it!
     del safelist[:]
+    # log("Best moves (%s ticks): %s"%(ticks,best_moves))
     return best_moves[0] if best_moves else None
 
 def get_safe_move(loc, state, safelist=[], move_history=[], deep=0, ticks=25):
@@ -36,7 +37,8 @@ def get_safe_move(loc, state, safelist=[], move_history=[], deep=0, ticks=25):
             except ValueError:
                 pass
         for move in possible_moves:
-            if move == "pass": continue
+            if deep > 0:
+                if move == "pass": continue
             move_history_branch = move_history[:]
             move_history_branch.append(move)
             newloc = loc + RDIRECTIONS[move]
@@ -77,8 +79,6 @@ def AssureSafe(func):
                 for i in reversed(range(1,4)):
                     best_move = get_best_move(me, args[1], ticks=i)
                     if check(best_move, me): return best_move
-                    # if no best_move is found pass
-                    ret = "pass"
         return ret
         
     def check(move, me):

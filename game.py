@@ -77,13 +77,14 @@ class Round(object):
             for bomb in bombs:
                 # calc range
                 count = [1,len([dupl for dupl in bombs if dupl == bomb])][multi]
-                blast_range = 2 + count
+                bomb.blast_range = 2 + count
                 # account for chain reactions
                 for other in bombs:
-                    if other in bomb.get_blast_wave(blast_range):
+                    if other in bomb.get_blast_wave(bomb.blast_range):
                         other.tick = bomb.tick
             for bomb in set(bombs):
                 # collect blast paths
-                [blast_paths.add(blast) for blast in bomb.get_blast_wave(blast_range) if bomb.tick <= ticks]
+                if bomb.tick <= ticks:
+                    blast_paths.update([blast for blast in bomb.get_blast_wave(bomb.blast_range)])
             self.blast_paths[ticks] = blast_paths
         return self.blast_paths[ticks]
