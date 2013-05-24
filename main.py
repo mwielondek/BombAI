@@ -28,7 +28,7 @@ def run():
             break
         write_command(command)
         counter += 1
-        log("--"*20+"\nRound %s"%counter)
+        log(("--"*8+"Round %s"+"--"*8)%counter)
         state = read_state(height, player_count)
 
         
