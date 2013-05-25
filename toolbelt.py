@@ -15,8 +15,16 @@ def get_possible_moves(loc, board, bombs):
 def bomb_at(loc, bombs):
     return find(lambda bomb: bomb.loc == loc, bombs)
     
-def loc_is_safe(loc, ticks=25, progressive=True):
-    return loc not in get_current_round().get_blast_paths(ticks, progressive)
+def loc_is_safe(loc, ticks=25, progressive=True, traps=False):
+    r = get_current_round()
+    main = loc not in r.get_blast_paths(ticks, progressive)
+    if not traps:
+        return main
+    (board, alive_players, bombs, previous_actions) = r.state
+    return main and not is_trap(loc, board, bombs)
+
+def is_trap(loc, board, bombs):
+    return len(get_possible_moves(loc, board, bombs)) <= 2
 
 def get_player_with_id(player_id, players):
     return find(lambda player: player.id == player_id, players)
@@ -30,12 +38,51 @@ def get_current_round():
 def find(pred, seq):
     return next((x for x in seq if pred(x)), None)    
 
+def get_escape_paths(loc, state, distance=5):
+    def helper(loc, state, pathlist=[], visited=[], move_history=[], distance=5, run=0):
+        # if deep < distance:
+        (board, players, bombs, previous_actions) = state
+    
+        possible_moves = get_possible_moves(loc, board, bombs)
+        possible_moves.remove("pass")
+        # dont go back where you just came from
+        if move_history:
+            prev_move = move_history[-1]
+            try:
+                possible_moves.remove(DIRECTIONS[-(RDIRECTIONS[prev_move])])
+            except ValueError:
+                pass
+
+        for move in possible_moves:
+            newloc = loc + RDIRECTIONS[move]
+            if newloc in visited:
+                continue
+            visited.append(newloc)
+            move_history_branch = move_history[:]
+            move_history_branch.append(move)
+            if len(move_history_branch) == distance:
+                log("Appending sl with %s"%move_history_branch)
+                pathlist.append(move_history_branch[:])
+            if len(move_history_branch) < distance:
+                helper(newloc, state, pathlist, visited, move_history_branch[:], run=run+1)
+        
+        # return pathlist
+    
+    visited = []
+    pathlist = []
+    helper(loc, state, pathlist, visited, distance=distance)
+    return pathlist
+
+
+
 shortest = RECURSION_LIMIT    
 def get_best_move(player, state, ticks=25):
     # reset shortest
     global shortest
-    shortest = RECURSION_LIMIT
-    safelist = get_safe_move(player.loc, state, ticks=ticks)
+    for b00l in [True, False]:
+        shortest = RECURSION_LIMIT
+        safelist = get_safe_move(player.loc, state, ticks=ticks, traps=b00l)
+        if safelist: break
 
     if not safelist:
         return None
@@ -45,11 +92,12 @@ def get_best_move(player, state, ticks=25):
         if len(moves) < len(best_moves):
             best_moves = moves       
     log("Best moves (%s ticks): %s"%(ticks,best_moves))
+    if not b00l: log("It's a trap!")
     # safelist is mutable, clear it!
     del safelist[:]
     return best_moves[0] if best_moves else None
 
-def get_safe_move(loc, state, safelist=[], move_history=[], deep=0, ticks=25):
+def get_safe_move(loc, state, safelist=[], move_history=[], deep=0, ticks=25, traps=False):
     global shortest
     # break if found short(est) strategy
     if safelist and len(safelist[-1])<=2:
@@ -67,8 +115,7 @@ def get_safe_move(loc, state, safelist=[], move_history=[], deep=0, ticks=25):
                 continue
             move_history_branch = move_history[:]
             move_history_branch.append(move)
-            if loc_is_safe(newloc, ticks):
-                log("mhb %s"%move_history_branch)
+            if loc_is_safe(newloc, ticks, traps=traps):
                 safelist.append(move_history_branch[:])
                 shortest = min(len(move_history_branch),shortest)
                 # doesnt get much shorter than this!
@@ -76,8 +123,8 @@ def get_safe_move(loc, state, safelist=[], move_history=[], deep=0, ticks=25):
                 # dont go deeper, Jack
                 continue
             if len(move_history_branch) < shortest:
-                get_safe_move(newloc, state, safelist, move_history_branch[:], deep+1)
-    
+                get_safe_move(newloc, state, safelist, move_history_branch[:], deep+1, ticks, traps)
+
     return safelist
 
 def AssureSafe(func):

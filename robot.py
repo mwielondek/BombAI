@@ -24,15 +24,60 @@ class Robot(object):
         log("Possible commands: %s"%possible_commands)
         
         # Rule 1: defend your ass
-        defend_state = (board, bombs, possible_commands)
-        return self.defend(defend_state, current_round)
+        return self.defend(state, current_round, possible_commands)
         
-    def defend(self, state, current_round):
-        (board, bombs, possible_commands) = state
+    def defend(self, state, current_round, possible_commands):
+        (board, alive_players, bombs, previous_actions) = state
         
+        # ep = get_escape_paths(self.me.loc, state)
+        # ep2 = [moveset[0] for moveset in ep]
+        # antal = len(set(ep2))
+        # log("Antal utvagar: %s"%antal)
+        
+        # check if other bot in direct line of sight'
+        for bot in alive_players:
+            print bot
+        
+        def move():
+            for move in possible_commands:
+                if loc_is_safe(self.me.loc + RDIRECTIONS[move], traps=False):
+                    log("from here%s"%move)
+                    return move
+        
+            # if no single move guarantees safety, look for closest safe spot
+            best_move = get_best_move(self.me, state)
+            log("Calculated best move (25 ticks): %s"%best_move)
+            if best_move:
+                return best_move
+        
+            # check for closest safe spot but for less turns ahead
+            for i in reversed(range(1,6)):
+                best_move = get_best_move(self.me, state, i)
+                log("Calculated best move (%s ticks): %s"%(i, best_move))
+                if best_move:
+                    return best_move
+        
+            # else fall back to randomness, except pass
+            log("Robot Panic! Choosing move at random.")
+            import random
+            if possible_commands:
+                return possible_commands[random.randint(0, len(possible_commands) - 1)]
+        
+        def passive_defence():
+            # check if trapped
+            if not loc_is_safe(self.me.loc, 1, False, True):
+                log("Threat level low, but I seem trapped!")
+                return move()
+            # check if 'kinda' trapped - how many escape paths do I have?
+            # log("=GEP: %s"%get_escape_paths(self.me.loc, state))
+            # if len(get_escape_paths()) <= 2:
+            #     log("TOO LITTLE ESCPAE PODS OMAOMAMAOGM")
+            # else chillax
+            return "pass"
+                
         if not bombs:
             log("No bombs. No stress.")
-            return "pass"
+            return passive_defence()
         
         bombs.sort(key=lambda bomb: bomb.x)
         log("Bombs at %s"%bombs)
@@ -40,29 +85,10 @@ class Robot(object):
 
         if loc_is_safe(self.me.loc):
             log("Not in blast path, chillax.")
-            return "pass"
+            return passive_defence()
         
+        # else (is in blastpath) move
         log("In blast path, run Forrest!")
-        for move in possible_commands:
-            if loc_is_safe(self.me.loc + RDIRECTIONS[move]):
-                return move
+        return move()
         
-        # if no single move guarantees safety, look for closest safe spot
-        best_move = get_best_move(self.me, current_round.state)
-        log("Calculated best move (25 ticks): %s"%best_move)
-        if best_move:
-            return best_move
-        
-        # check for closest safe spot but for less turns ahead
-        for i in reversed(range(1,6)):
-            best_move = get_best_move(self.me, current_round.state, i)
-            log("Calculated best move (%s ticks): %s"%(i, best_move))
-            if best_move:
-                return best_move
-        
-        # else fall back to randomness, except pass
-        log("Robot Panic! Choosing move at random.")
-        import random
-        if possible_commands:
-            return possible_commands[random.randint(0, len(possible_commands) - 1)]
         return "pass"
