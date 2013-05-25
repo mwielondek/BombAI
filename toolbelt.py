@@ -15,58 +15,8 @@ def get_possible_moves(loc, board, bombs):
 def bomb_at(loc, bombs):
     return find(lambda bomb: bomb.loc == loc, bombs)
     
-def get_best_move(player, state, ticks=25):
-    safelist = get_safe_move(player.loc, state, ticks=ticks)
-
-    if not safelist:
-        return None
-        
-    best_moves = safelist[0]
-    for moves in safelist[1:]:
-        if len(moves) < len(best_moves):
-            best_moves = moves       
-    # safelist is mutable, clear it!
-    del safelist[:]
-    # log("Best moves (%s ticks): %s"%(ticks,best_moves))
-    return best_moves[0] if best_moves else None
-
-def get_safe_move(loc, state, safelist=[], move_history=[], deep=0, ticks=25):
-    if deep < RECURSION_LIMIT:
-        (board, players, bombs, previous_actions) = state
-        
-        # return pass if its safe
-        if loc_is_safe(loc, ticks):
-            return [["pass"]]
-        
-        possible_moves = get_possible_moves(loc, board, bombs)
-        # check for pass above, dont check again. ever.
-        possible_moves.remove("pass")
-        
-        # dont go back where you just came from
-        if move_history:
-            try:
-                prev_move = move_history[-1]
-                possible_moves.remove(DIRECTIONS[-(RDIRECTIONS[prev_move])])
-            except ValueError:
-                pass
-
-        for move in possible_moves:
-            move_history_branch = move_history[:]
-            move_history_branch.append(move)
-            newloc = loc + RDIRECTIONS[move]
-            if loc_is_safe(newloc, ticks):
-                safelist.append(move_history_branch[:])
-                # dont look any further if found quick route
-                if len(move_history_branch) <= 2:
-                    break
-                # dont go deeper, Jack
-                continue
-            get_safe_move(newloc, state, safelist, move_history_branch[:], deep+1)
-    
-    return safelist
-        
-def loc_is_safe(loc, ticks=25):
-    return not loc in get_current_round().get_blast_paths(ticks)
+def loc_is_safe(loc, ticks=25, progressive=True):
+    return loc not in get_current_round().get_blast_paths(ticks, progressive)
 
 def get_player_with_id(player_id, players):
     return find(lambda player: player.id == player_id, players)
@@ -78,12 +28,62 @@ def get_current_round():
     return game.CURRENT_ROUND
 
 def find(pred, seq):
-    return next((x for x in seq if pred(x)), None)
+    return next((x for x in seq if pred(x)), None)    
+
+shortest = RECURSION_LIMIT    
+def get_best_move(player, state, ticks=25):
+    # reset shortest
+    global shortest
+    shortest = RECURSION_LIMIT
+    safelist = get_safe_move(player.loc, state, ticks=ticks)
+
+    if not safelist:
+        return None
+        
+    best_moves = safelist[0]
+    for moves in safelist[1:]:
+        if len(moves) < len(best_moves):
+            best_moves = moves       
+    log("Best moves (%s ticks): %s"%(ticks,best_moves))
+    # safelist is mutable, clear it!
+    del safelist[:]
+    return best_moves[0] if best_moves else None
+
+def get_safe_move(loc, state, safelist=[], move_history=[], deep=0, ticks=25):
+    global shortest
+    # break if found short(est) strategy
+    if safelist and len(safelist[-1])<=2:
+        return
     
+    if deep < RECURSION_LIMIT:
+        (board, players, bombs, previous_actions) = state
+        
+        possible_moves = get_possible_moves(loc, board, bombs)
+
+        for move in possible_moves:
+            newloc = loc + RDIRECTIONS[move]
+            # check if wont blow up in the first place..
+            if not loc_is_safe(newloc, deep+1, False):
+                continue
+            move_history_branch = move_history[:]
+            move_history_branch.append(move)
+            if loc_is_safe(newloc, ticks):
+                log("mhb %s"%move_history_branch)
+                safelist.append(move_history_branch[:])
+                shortest = min(len(move_history_branch),shortest)
+                # doesnt get much shorter than this!
+                if shortest <= 2: break
+                # dont go deeper, Jack
+                continue
+            if len(move_history_branch) < shortest:
+                get_safe_move(newloc, state, safelist, move_history_branch[:], deep+1)
+    
+    return safelist
+
 def AssureSafe(func):
     ''' Intelligent Safety Assurance System (I.S.A.S.)'''
-    def wrapper(*args):
-        ret = func(*args)
+    def wrapper(*args, **kwargs):
+        ret = func(*args, **kwargs)
         me = get_me()
         if me.is_alive():
             if not check(ret, me):

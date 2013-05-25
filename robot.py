@@ -15,7 +15,7 @@ class Robot(object):
         
         if not self.me.is_alive():
             log("Fatal Error: Dead :( // fatal, haha, get it?")
-            return "pass"
+            return "break"
             
         log("My position: %s"%self.me.loc)
         

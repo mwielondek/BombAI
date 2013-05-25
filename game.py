@@ -67,9 +67,11 @@ class Round(object):
         # (board, alive_players, bombs, previous_actions) = state
         self.state = state
         self.blast_paths = {}
+        for n in range(1,26):
+            self.get_blast_paths(n,False)
         
-    def get_blast_paths(self, ticks=25):
-        if ticks not in self.blast_paths:
+    def get_blast_paths(self, ticks=25, progressive=True):
+        def calc():
             bombs = self.state[2]
             blast_paths = set()
             # if dupl. bombs
@@ -84,7 +86,23 @@ class Round(object):
                         other.tick = min(other.tick, bomb.tick)
             for bomb in set(bombs):
                 # collect blast paths
-                if bomb.tick <= ticks:
+                if bomb.tick == ticks:
                     blast_paths.update([blast for blast in bomb.get_blast_wave(bomb.blast_range)])
-            self.blast_paths[ticks] = blast_paths
+            return blast_paths
+        
+        def collect(ticks):
+            l = set()
+            for n in range(1,ticks+1):
+                l |= self.blast_paths[n]
+            return l
+        
+        if progressive:
+            if ticks == 25:
+                if "prog25" not in self.blast_paths:                
+                    self.blast_paths["prog25"] = collect(25)
+                return self.blast_paths["prog25"]
+            return collect(ticks)
+            
+        if ticks not in self.blast_paths:
+            self.blast_paths[ticks] = calc()
         return self.blast_paths[ticks]
