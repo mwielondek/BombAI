@@ -144,7 +144,7 @@ def AssureSafe(func):
         bombs = state[2]
         if me.is_alive():
             if not check(ret, me, bombs):
-                log("Wanted to return \""+ret+"\" - blocked by I.S.A.S.")
+                log("Wanted to return \""+str(ret)+"\" - blocked by I.S.A.S.")
                 io.PREFIX = "* "
                 # try to find best move for 3,2,1 turns ahead
                 for i in reversed(range(1,4)):
@@ -163,10 +163,17 @@ def AssureSafe(func):
         
     def check(move, me, bombs):
         if not move: return False
-        newloc = me.loc + RDIRECTIONS[move]
-        no_bomb = not bomb_at(newloc, bombs)
-        # if already standing on the bomb it doesnt matter
-        if move == "pass": no_bomb = True
-        return loc_is_safe(newloc, 1) and no_bomb
+        # assume move is 'move move' i.e. a string
+        try:
+            newloc = me.loc + RDIRECTIONS[move]
+            no_bomb = not bomb_at(newloc, bombs)
+            # if already standing on the bomb it doesnt matter
+            if move == "pass": no_bomb = True
+            return loc_is_safe(newloc, 1, False) and no_bomb
+        # otherwise it's a 'bomb move' i.e. integer
+        except KeyError:
+            if BOMB_MIN_TICK <= move <= BOMB_MAX_TICK:
+                return loc_is_safe(me.loc, 1, False)
+            return False
         
     return wrapper
