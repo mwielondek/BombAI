@@ -17,6 +17,8 @@ def go_towards(loc1, loc2):
         return possible_moves[0]
     return "pass"
     
+def get_prev_action_for_player(player_id, actions):
+    return find(lambda action: action.player_id == player_id, actions)
 
 def get_bombs_for_player(player_id, bombs):
     return [bomb for bomb in bombs if bomb.player_id == player_id]

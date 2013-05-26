@@ -30,10 +30,13 @@ class Robot(object):
         # Rule 2: if no need to defend, attack!
         if not ret:
             log("Attack mode activated. Prepare to die bitchez.")
-            ret = self.attack(state)
+            ret = self.attack(state, possible_commands)
+        elif ret == "pass":
+            log("Tried returning \"pass\". Why not see if we can attack meanwhile?")
+            ret = self.attack(state, possible_commands)
         return ret if ret else "pass"
         
-    def attack(self, state, force=False):
+    def attack(self, state, possible_commands, force=False):
         # do no checks, just do it!
         if force:
             return BOMB_MIN_TICK
@@ -43,6 +46,21 @@ class Robot(object):
             log("Cannot place more bombs.. :( Fuucking buullshit!")
             return
         
+        # Check if other bots around
+        for bot in (bot for bot in alive_players if bot.id != game.PLAYER_ID):
+            l = abs(self.me.loc - bot)
+            d = l.x + l.y
+            if d > ATTACK_DISTANCE:
+                log("Other bots too far away to be wasting bombs..")
+                try:
+                    prev_action = get_prev_action_for_player(self.my_id, previous_actions).action
+                    possible_commands.remove((DIRECTIONS[-(RDIRECTIONS[prev_action])]))
+                except:
+                    pass
+                ret = possible_commands.pop()
+                if ret == "pass": ret = possible_commands.pop()
+                return ret
+        
         # Now place bomb, but first check if not kamikaze move
         mock_bombs = bombs[:]
         mock_state = (board, alive_players, mock_bombs, previous_actions)
@@ -50,7 +68,7 @@ class Robot(object):
         for bomb in mock_bombs:
             bomb.tick -= 1
         _backup = get_current_round()
-        for bomb_tick in range(BOMB_MIN_TICK, BOMB_MAX_TICK+1, 5):
+        for bomb_tick in range(BOMB_MIN_TICK+5, BOMB_MAX_TICK+1, 10):
             mock_bombs.append(game.Bomb(self.my_id, self.me.loc.x, self.me.loc.y, bomb_tick))
             game.CURRENT_ROUND = game.Round(mock_state, 1337)
             best_move = get_best_move(self.me.loc, mock_state)
@@ -118,7 +136,7 @@ class Robot(object):
         
             # else PANIC! Haha, jk. No but seriously, auto-destruct.
             log("No safe moves! Self-destruct sequence initiated...")
-            return self.attack(0, force=True)
+            return self.attack(0, 0, force=True)
         
         def passive_defence():
             # check if trapped

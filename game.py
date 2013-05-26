@@ -64,6 +64,9 @@ class Action(object):
             self.action = action_string
             self.is_bomb = False
             
+    def __repr__(self):
+        return "Action: Player %s - %s"%(self.player_id, self.action)
+            
 class Round(object):
     def __init__(self, state, nr):
         # (board, alive_players, bombs, previous_actions) = state
