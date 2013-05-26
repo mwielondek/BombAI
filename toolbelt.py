@@ -56,15 +56,11 @@ def line_of_sight(loc, board, bombs=None):
     # somebody stepping on your shoes also counts
     res.append(loc)
     return res
-    
-def is_valid(loc, board, bombs):
-    return board.is_floor(loc) and not bomb_at(loc, bombs)
         
 def loc_is_safe(loc, ticks=25, progressive=True, traps=False):
     r = get_current_round()
     board = r.state[0]
-    bombs = r.state[2]
-    main = loc not in r.get_blast_paths(ticks, progressive) and is_valid(loc, board, bombs)
+    main = loc not in r.get_blast_paths(ticks, progressive) and board.is_floor(loc)
     if not traps:
         return main
     (board, alive_players, bombs, previous_actions) = r.state
@@ -134,7 +130,7 @@ def get_best_move(player, state, ticks=25):
     for moves in safelist[1:]:
         if len(moves) < len(best_moves):
             best_moves = moves       
-    # log("Best move strategy (%s ticks): %s"%(ticks,best_moves))
+    log("Best move strategy (%s ticks): %s"%(ticks,best_moves))
     if not b00l: log("It's a trap! ... but what else am I gonna do")
     # safelist is mutable, clear it!
     del safelist[:]
@@ -175,14 +171,20 @@ def AssureSafe(func):
     def wrapper(*args, **kwargs):
         ret = func(*args, **kwargs)
         me = get_me()
+        state = args[1]
+        bombs = state[2]
         if me.is_alive():
-            if not check(ret, me):
+            if not check(ret, me, bombs):
                 log("Wanted to return \""+ret+"\" - blocked by I.S.A.S.")
                 io.PREFIX = "* "
                 # try to find best move for 3,2,1 turns ahead
                 for i in reversed(range(1,4)):
                     best_move = get_best_move(me, args[1], ticks=i)
-                    if check(best_move, me):
+                    # bombs = args[1][2]
+                    # log("Bombs ISAS %s"%bombs)
+                    # for bomb in bombs:
+                    #     log("Ticks %s"%bomb.tick)
+                    if check(best_move, me, bombs):
                         log("Alternative best move (%s ticks): %s"%(i, best_move))
                         io.PREFIX = ""
                         return best_move
@@ -190,10 +192,11 @@ def AssureSafe(func):
                 io.PREFIX = ""
         return ret
         
-    def check(move, me):
-        try:
-            return loc_is_safe(me.loc + RDIRECTIONS[move], 1)
-        except KeyError:
-            return False
+    def check(move, me, bombs):
+        newloc = me.loc + RDIRECTIONS[move]
+        no_bomb = bomb_at(newloc, bombs)
+        # if already standing on the bomb it doesnt matter
+        if move == "pass": no_bomb = True
+        return loc_is_safe(newloc, 1) and no_bomb
         
     return wrapper

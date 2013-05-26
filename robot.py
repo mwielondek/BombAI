@@ -34,7 +34,6 @@ class Robot(object):
                 if bot.loc in line_of_sight(self.me.loc, board):
                     log("Bot %s in line of sight @ %s"%(bot.id,bot.loc))
                     # check if in potential blast range (max 7)
-                    # check how many bombs player can place
                     bomb_count = len([bomb for bomb in bombs if bomb.player_id == bot.id])
                     delta = bot.loc  - self.me.loc
                     delta = abs(delta.x) if delta.x != 0 else abs(delta.y)
