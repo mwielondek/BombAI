@@ -43,7 +43,7 @@ class Robot(object):
                     # assume bot will place bomb
                     bomb_count = len([bomb for bomb in bombs if (bomb.player_id == bot.id and bomb.tick > 1)])
                     for _ in range(5-bomb_count):
-                        b = game.Bomb(bot.id, bot.loc.x, bot.loc.y, 11)
+                        b = game.Bomb(bot.id, bot.loc.x, bot.loc.y, DEFAULT_TICKS)
                         b.ghost = True
                         mock_bombs.append(b)
 
@@ -57,14 +57,14 @@ class Robot(object):
             
             return (bots_in_sight, ret)
         
-        def move():
+        def move(possible_commands=possible_commands, allow_pass=True):
             for move in possible_commands:
                 if loc_is_safe(self.me.loc + RDIRECTIONS[move], traps=False):
                     return move
         
             # if no single move guarantees safety, look for closest safe spot
-            best_move = get_best_move(self.me.loc, state)
-            log("Calculated best move (25 ticks): %s"%best_move)
+            best_move = get_best_move(self.me.loc, state, allow_pass=allow_pass)
+            log("Calculated best move (%s ticks): %s"%(DEFAULT_TICKS, best_move))
             if best_move:
                 return best_move
         
@@ -85,7 +85,9 @@ class Robot(object):
             # check if trapped
             if not loc_is_safe(self.me.loc, 1, False, True):
                 log("Threat level low, but I seem trapped!")
-                return move()
+                pc = possible_commands[:]
+                pc.remove("pass")
+                return move(pc, False)
             
             # check if other bot in direct line of sight
             # and predict best move if bot places bomb

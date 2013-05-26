@@ -1,4 +1,5 @@
 from board import *
+from const import DEFAULT_TICKS
 
 CURRENT_ROUND = None
 PLAYER_ID = -1
@@ -68,10 +69,10 @@ class Round(object):
         # (board, alive_players, bombs, previous_actions) = state
         self.state = state
         self.blast_paths = {}
-        for n in range(1,26):
+        for n in range(1,DEFAULT_TICKS+1):
             self.get_blast_paths(n,False)
         
-    def get_blast_paths(self, ticks=25, progressive=True):
+    def get_blast_paths(self, ticks=DEFAULT_TICKS, progressive=True):
         def calc():
             bombs = self.state[2]
             blast_paths = set()
@@ -98,10 +99,10 @@ class Round(object):
             return l
         
         if progressive:
-            if ticks == 25:
-                if "prog25" not in self.blast_paths:                
-                    self.blast_paths["prog25"] = collect(25)
-                return self.blast_paths["prog25"]
+            if ticks == DEFAULT_TICKS:
+                if "progDefault" not in self.blast_paths:                
+                    self.blast_paths["progDefault"] = collect(DEFAULT_TICKS)
+                return self.blast_paths["progDefault"]
             return collect(ticks)
             
         if ticks not in self.blast_paths:

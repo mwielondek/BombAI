@@ -56,15 +56,6 @@ def line_of_sight(loc, board, bombs=None):
     # somebody stepping on your shoes also counts
     res.append(loc)
     return res
-        
-def loc_is_safe(loc, ticks=25, progressive=True, traps=False):
-    r = get_current_round()
-    board = r.state[0]
-    main = loc not in r.get_blast_paths(ticks, progressive) and board.is_floor(loc)
-    if not traps:
-        return main
-    (board, alive_players, bombs, previous_actions) = r.state
-    return main and not is_trap(loc, board, bombs)
 
 def is_trap(loc, board, bombs):
     return len(get_possible_moves(loc, board, bombs)) <= 2
@@ -79,48 +70,15 @@ def get_current_round():
     return game.CURRENT_ROUND
 
 def find(pred, seq):
-    return next((x for x in seq if pred(x)), None)    
+    return next((x for x in seq if pred(x)), None)
 
-def get_escape_paths(loc, state, distance=5):
-    def helper(loc, state, pathlist=[], visited=[], move_history=[], distance=5, run=0):
-        # if deep < distance:
-        (board, players, bombs, previous_actions) = state
-    
-        possible_moves = get_possible_moves(loc, board, bombs)
-        possible_moves.remove("pass")
-        # dont go back where you just came from
-        if move_history:
-            prev_move = move_history[-1]
-            try:
-                possible_moves.remove(DIRECTIONS[-(RDIRECTIONS[prev_move])])
-            except ValueError:
-                pass
-
-        for move in possible_moves:
-            newloc = loc + RDIRECTIONS[move]
-            if newloc in visited:
-                continue
-            visited.append(newloc)
-            move_history_branch = move_history[:]
-            move_history_branch.append(move)
-            if len(move_history_branch) == distance:
-                log("Appending sl with %s"%move_history_branch)
-                pathlist.append(move_history_branch[:])
-            if len(move_history_branch) < distance:
-                helper(newloc, state, pathlist, visited, move_history_branch[:], run=run+1)
-    
-    visited = []
-    pathlist = []
-    helper(loc, state, pathlist, visited, distance=distance)
-    return pathlist
-
-shortest = RECURSION_LIMIT    
-def get_best_move(loc, state, ticks=25):
+shortest = RECURSION_LIMIT
+def get_best_move(loc, state, ticks=DEFAULT_TICKS, allow_pass=True):
     # reset shortest
     global shortest
     for b00l in [True, False]:
         shortest = RECURSION_LIMIT
-        safelist = get_safe_move(loc, state, ticks=ticks, traps=b00l)
+        safelist = get_safe_move(loc, state, ticks=ticks, traps=b00l, allow_pass=allow_pass)
         if safelist: break
 
     if not safelist:
@@ -136,7 +94,7 @@ def get_best_move(loc, state, ticks=25):
     del safelist[:]
     return best_moves[0] if best_moves else None
 
-def get_safe_move(loc, state, safelist=[], move_history=[], deep=0, ticks=25, traps=False):
+def get_safe_move(loc, state, safelist=[], move_history=[], deep=0, ticks=DEFAULT_TICKS, traps=False, allow_pass=True):
     global shortest
     # break if found short(est) strategy
     if safelist and len(safelist[-1])<=2:
@@ -146,6 +104,8 @@ def get_safe_move(loc, state, safelist=[], move_history=[], deep=0, ticks=25, tr
         (board, players, bombs, previous_actions) = state
         
         possible_moves = get_possible_moves(loc, board, bombs)
+        if deep == 0 and not allow_pass:
+            possible_moves.remove("pass")
 
         for move in possible_moves:
             newloc = loc + RDIRECTIONS[move]
@@ -165,6 +125,15 @@ def get_safe_move(loc, state, safelist=[], move_history=[], deep=0, ticks=25, tr
                 get_safe_move(newloc, state, safelist, move_history_branch[:], deep+1, ticks, traps)
 
     return safelist
+    
+def loc_is_safe(loc, ticks=DEFAULT_TICKS, progressive=True, traps=False):
+    r = get_current_round()
+    board = r.state[0]
+    main = loc not in r.get_blast_paths(ticks, progressive) and board.is_floor(loc)
+    if not traps:
+        return main
+    (board, alive_players, bombs, previous_actions) = r.state
+    return main and not is_trap(loc, board, bombs)
 
 def AssureSafe(func):
     ''' Intelligent Safety Assurance System (I.S.A.S.)'''
