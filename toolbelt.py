@@ -29,7 +29,7 @@ def get_possible_moves(loc, board, bombs):
     return ret
 
 def bomb_at(loc, bombs):
-    return find(lambda bomb: bomb.loc == loc, bombs)
+    return find(lambda bomb: bomb.loc == loc and not bomb.ghost, bombs)
     
 def line_of_sight(loc, board, bombs=None):
     res = []

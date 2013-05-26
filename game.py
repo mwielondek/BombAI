@@ -19,6 +19,7 @@ class Bomb(Positionable):
     def __init__(self, player_id, x, y, tick):
         self.player_id = player_id
         self.tick = tick
+        self.ghost = False
         super(Bomb, self).__init__(x, y)
         
     def get_blast_wave(self, blast_range):

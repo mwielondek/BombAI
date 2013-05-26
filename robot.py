@@ -43,24 +43,18 @@ class Robot(object):
                     # assume bot will place bomb
                     bomb_count = len([bomb for bomb in bombs if (bomb.player_id == bot.id and bomb.tick > 1)])
                     for _ in range(5-bomb_count):
-                        mock_bombs.append(game.Bomb(bot.id, bot.loc.x, bot.loc.y, 11))
+                        b = game.Bomb(bot.id, bot.loc.x, bot.loc.y, 11)
+                        b.ghost = True
+                        mock_bombs.append(b)
 
-            # check scenario where all bots in
-            # line of sight place bombs (next turn)
             _backup = get_current_round()
             mock_state = (board, alive_players, mock_bombs, previous_actions)
-            # turn clock 1 tick ahead
-            for bomb in mock_bombs:
-                bomb.tick -= 1
             game.CURRENT_ROUND = game.Round(mock_state, 1337)
             best_move = get_best_move(self.me.loc, mock_state)
             log("** If bots place bombs -> best move: %s"%best_move)
-            if best_move:
-                ret = best_move
-            else:
-                log("Confronting one of the bots! Come at me bro!")
-                ret = go_towards(self.me.loc, bot.loc)
+            ret = best_move
             game.CURRENT_ROUND = _backup
+            
             return (bots_in_sight, ret)
         
         def move():
@@ -92,18 +86,13 @@ class Robot(object):
             if not loc_is_safe(self.me.loc, 1, False, True):
                 log("Threat level low, but I seem trapped!")
                 return move()
-            if bots_in_sight:
-                # log("Assuming bots in sight will place bombs..")
-                # TODO
-                pass
-            return "pass"
             
-        # check if other bot in direct line of sight
-        lnp = look_n_predict()
-        if lnp:
-            bots_in_sight = True
-            log("LNP %s"%lnp[1])
-            if lnp[1]: return lnp[1]
+            # check if other bot in direct line of sight
+            # and predict best move if bot places bomb
+            lnp = look_n_predict()
+            if lnp and lnp[1]: return lnp[1]
+                
+            return "pass"
                 
         if not bombs:
             log("No bombs. No stress.")
