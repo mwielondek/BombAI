@@ -115,12 +115,12 @@ def get_escape_paths(loc, state, distance=5):
     return pathlist
 
 shortest = RECURSION_LIMIT    
-def get_best_move(player, state, ticks=25):
+def get_best_move(loc, state, ticks=25):
     # reset shortest
     global shortest
     for b00l in [True, False]:
         shortest = RECURSION_LIMIT
-        safelist = get_safe_move(player.loc, state, ticks=ticks, traps=b00l)
+        safelist = get_safe_move(loc, state, ticks=ticks, traps=b00l)
         if safelist: break
 
     if not safelist:
@@ -179,7 +179,7 @@ def AssureSafe(func):
                 io.PREFIX = "* "
                 # try to find best move for 3,2,1 turns ahead
                 for i in reversed(range(1,4)):
-                    best_move = get_best_move(me, args[1], ticks=i)
+                    best_move = get_best_move(me.loc, args[1], ticks=i)
                     # bombs = args[1][2]
                     # log("Bombs ISAS %s"%bombs)
                     # for bomb in bombs:
