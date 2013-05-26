@@ -1,6 +1,6 @@
 from toolbelt import *
 from io import log
-import game
+import game, io
 
 # TODO: Create greatest robot ever programmed
 class Robot(object):
@@ -14,7 +14,7 @@ class Robot(object):
         current_round = get_current_round()
         
         if not self.me.is_alive():
-            log("Fatal Error: Dead :( // fatal, haha, get it?")
+            log("Fatal Error: Dead :( ... fatal, haha, get it?")
             return "break"
             
         log("My position: %s"%self.me.loc)
@@ -29,19 +29,41 @@ class Robot(object):
     def defend(self, state, current_round, possible_commands):
         (board, alive_players, bombs, previous_actions) = state
         
-        # ep = get_escape_paths(self.me.loc, state)
-        # ep2 = [moveset[0] for moveset in ep]
-        # antal = len(set(ep2))
-        # log("Antal utvagar: %s"%antal)
-        
-        # check if other bot in direct line of sight'
-        for bot in alive_players:
-            print bot
+        def look_n_predict():
+            for bot in (bot for bot in alive_players if bot.id != game.PLAYER_ID):
+                if bot.loc in line_of_sight(self.me.loc, board):
+                    log("Bot %s in line of sight @ %s"%(bot.id,bot.loc))
+                    # check if in potential blast range (max 7)
+                    # check how many bombs player can place
+                    bomb_count = len([bomb for bomb in bombs if bomb.player_id == bot.id])
+                    delta = bot.loc  - self.me.loc
+                    delta = abs(delta.x) if delta.x != 0 else abs(delta.y)
+                    if bomb_count >= 5 or delta > 7-bomb_count:
+                        log("Bot not dangerous.")
+                        continue
+                    # assume bot will place bomb
+                    mock_bombs = bombs[:]
+                    for _ in range(5-bomb_count):
+                        mock_bombs.append(game.Bomb(bot.id, bot.loc.x, bot.loc.y, 5))
+                    # how would you play now? will I be stuck?
+                    log("What would happen?!")
+                    io.PREFIX = "* "
+                    mock_state = (board, alive_players, mock_bombs, previous_actions)
+                    _backup = get_current_round()
+                    game.CURRENT_ROUND = game.Round(mock_state, 123)
+                    gem = get_best_move(self.me, mock_state)
+                    log("Mock best move: %s"%gem)
+                    game.CURRENT_ROUND = _backup
+                
+                    if not gem: # we're in trouble.
+                        log("We would be in trouble. Confronting the bot!")
+                        io.PREFIX = ""
+                        return go_towards(self.me.loc, bot.loc)
+                    io.PREFIX = ""
         
         def move():
             for move in possible_commands:
                 if loc_is_safe(self.me.loc + RDIRECTIONS[move], traps=False):
-                    log("from here%s"%move)
                     return move
         
             # if no single move guarantees safety, look for closest safe spot
@@ -74,6 +96,10 @@ class Robot(object):
             #     log("TOO LITTLE ESCPAE PODS OMAOMAMAOGM")
             # else chillax
             return "pass"
+            
+        # check if other bot in direct line of sight
+        lnp = look_n_predict()
+        if lnp: return lnp
                 
         if not bombs:
             log("No bombs. No stress.")

@@ -1,6 +1,22 @@
 from const import *
 from io import log
-import game
+import game, io
+
+def go_towards(loc1, loc2):
+    delta = loc2 - loc1
+    possible_moves = []
+    if delta.x > 0:
+        possible_moves.append("right")
+    elif delta.x < 0:
+        possible_moves.append("left")
+    if delta.y > 0:
+        possible_moves.append("down")
+    elif delta.y < 0:
+        possible_moves.append("up")
+    if possible_moves:
+        return possible_moves[0]
+    return "pass"
+    
 
 def get_bombs_for_player(player_id, bombs):
     return [bomb for bomb in bombs if bomb.player_id == player_id]
@@ -15,9 +31,40 @@ def get_possible_moves(loc, board, bombs):
 def bomb_at(loc, bombs):
     return find(lambda bomb: bomb.loc == loc, bombs)
     
+def line_of_sight(loc, board, bombs=None):
+    res = []
+    for delta in range(1,board.width-loc.x+1):
+        newloc = loc+Location(delta,0)
+        if board.is_floor(newloc):
+            res.append(newloc)
+        else: break
+    for delta in range(1,board.width-loc.x+1):
+        newloc = loc+Location(-delta,0)
+        if board.is_floor(newloc):
+            res.append(newloc)
+        else: break
+    for delta in range(1,board.height-loc.y+1):
+        newloc = loc+Location(0,delta)
+        if board.is_floor(newloc):
+            res.append(newloc)
+        else: break
+    for delta in range(1,board.height-loc.y+1):
+        newloc = loc+Location(0,-delta)
+        if board.is_floor(newloc):
+            res.append(newloc)
+        else: break
+    # somebody stepping on your shoes also counts
+    res.append(loc)
+    return res
+    
+def is_valid(loc, board, bombs):
+    return board.is_floor(loc) and not bomb_at(loc, bombs)
+        
 def loc_is_safe(loc, ticks=25, progressive=True, traps=False):
     r = get_current_round()
-    main = loc not in r.get_blast_paths(ticks, progressive)
+    board = r.state[0]
+    bombs = r.state[2]
+    main = loc not in r.get_blast_paths(ticks, progressive) and is_valid(loc, board, bombs)
     if not traps:
         return main
     (board, alive_players, bombs, previous_actions) = r.state
@@ -65,15 +112,11 @@ def get_escape_paths(loc, state, distance=5):
                 pathlist.append(move_history_branch[:])
             if len(move_history_branch) < distance:
                 helper(newloc, state, pathlist, visited, move_history_branch[:], run=run+1)
-        
-        # return pathlist
     
     visited = []
     pathlist = []
     helper(loc, state, pathlist, visited, distance=distance)
     return pathlist
-
-
 
 shortest = RECURSION_LIMIT    
 def get_best_move(player, state, ticks=25):
@@ -91,8 +134,8 @@ def get_best_move(player, state, ticks=25):
     for moves in safelist[1:]:
         if len(moves) < len(best_moves):
             best_moves = moves       
-    log("Best moves (%s ticks): %s"%(ticks,best_moves))
-    if not b00l: log("It's a trap!")
+    # log("Best move strategy (%s ticks): %s"%(ticks,best_moves))
+    if not b00l: log("It's a trap! ... but what else am I gonna do")
     # safelist is mutable, clear it!
     del safelist[:]
     return best_moves[0] if best_moves else None
@@ -135,13 +178,16 @@ def AssureSafe(func):
         if me.is_alive():
             if not check(ret, me):
                 log("Wanted to return \""+ret+"\" - blocked by I.S.A.S.")
+                io.PREFIX = "* "
                 # try to find best move for 3,2,1 turns ahead
                 for i in reversed(range(1,4)):
                     best_move = get_best_move(me, args[1], ticks=i)
                     if check(best_move, me):
                         log("Alternative best move (%s ticks): %s"%(i, best_move))
+                        io.PREFIX = ""
                         return best_move
                 log("No other option - prepare to die...")
+                io.PREFIX = ""
         return ret
         
     def check(move, me):

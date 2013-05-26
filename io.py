@@ -2,6 +2,8 @@ from sys import stdin, stdout, stderr
 from board import Board
 from game import *
 
+PREFIX = ''
+
 def readline():
     in_data = stdin.readline() 
     log("in: %s"%in_data)
@@ -40,7 +42,7 @@ def read_state(height, player_count):
     return (board, alive_players, bombs, previous_actions)
 
 def log(message):
-    print >> stderr, str(message).rstrip()
+    print >> stderr, str(PREFIX+message).rstrip()
 
 def write_command(command):
     command_str = str(command)

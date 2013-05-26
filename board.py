@@ -1,6 +1,8 @@
 class Board(object):
     def __init__(self, board):
         self.board = board
+        self.width = len(board[0])
+        self.height = len(board)
 
     def tile_at(self, loc):
         from const import TILE_OUT_OF_BOUNDS
@@ -33,6 +35,9 @@ class Location(object):
         
     def __neg__(self):
         return Location(-self.x,-self.y)
+        
+    def __abs__(self):
+        return Location(abs(self.x),abs(self.y))
         
     def __getitem__(self, key):
         return [self.x, self.y][key]
