@@ -114,7 +114,7 @@ def get_safe_move(loc, state, safelist=[], move_history=[], deep=0, ticks=DEFAUL
                 continue
             move_history_branch = move_history[:]
             move_history_branch.append(move)
-            if loc_is_safe(newloc, ticks, traps=traps):
+            if loc_is_safe(newloc, (deep+1, ticks), traps=traps):
                 safelist.append(move_history_branch[:])
                 shortest = min(len(move_history_branch),shortest)
                 # doesnt get much shorter than this!

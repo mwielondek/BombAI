@@ -94,7 +94,11 @@ class Round(object):
         
         def collect(ticks):
             l = set()
-            for n in range(1,ticks+1):
+            try:
+                _from, _to = ticks
+            except TypeError:
+                _from, _to = 1, ticks
+            for n in range(_from,_to+1):
                 l |= self.blast_paths[n]
             return l
         
