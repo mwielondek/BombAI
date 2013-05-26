@@ -64,6 +64,9 @@ class Action(object):
             self.action = action_string
             self.is_bomb = False
             
+    def __repr__(self):
+        return "Action: Player %s - %s"%(self.player_id, self.action)
+            
 class Round(object):
     def __init__(self, state, nr):
         # (board, alive_players, bombs, previous_actions) = state
@@ -94,7 +97,11 @@ class Round(object):
         
         def collect(ticks):
             l = set()
-            for n in range(1,ticks+1):
+            try:
+                _from, _to = ticks
+            except TypeError:
+                _from, _to = 1, ticks
+            for n in range(_from,_to+1):
                 l |= self.blast_paths[n]
             return l
         

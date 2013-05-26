@@ -17,6 +17,8 @@ def go_towards(loc1, loc2):
         return possible_moves[0]
     return "pass"
     
+def get_prev_action_for_player(player_id, actions):
+    return find(lambda action: action.player_id == player_id, actions)
 
 def get_bombs_for_player(player_id, bombs):
     return [bomb for bomb in bombs if bomb.player_id == player_id]
@@ -114,7 +116,7 @@ def get_safe_move(loc, state, safelist=[], move_history=[], deep=0, ticks=DEFAUL
                 continue
             move_history_branch = move_history[:]
             move_history_branch.append(move)
-            if loc_is_safe(newloc, ticks, traps=traps):
+            if loc_is_safe(newloc, (deep+1, ticks), traps=traps):
                 safelist.append(move_history_branch[:])
                 shortest = min(len(move_history_branch),shortest)
                 # doesnt get much shorter than this!
@@ -144,7 +146,7 @@ def AssureSafe(func):
         bombs = state[2]
         if me.is_alive():
             if not check(ret, me, bombs):
-                log("Wanted to return \""+ret+"\" - blocked by I.S.A.S.")
+                log("Wanted to return \""+str(ret)+"\" - blocked by I.S.A.S.")
                 io.PREFIX = "* "
                 # try to find best move for 3,2,1 turns ahead
                 for i in reversed(range(1,4)):
@@ -163,10 +165,17 @@ def AssureSafe(func):
         
     def check(move, me, bombs):
         if not move: return False
-        newloc = me.loc + RDIRECTIONS[move]
-        no_bomb = not bomb_at(newloc, bombs)
-        # if already standing on the bomb it doesnt matter
-        if move == "pass": no_bomb = True
-        return loc_is_safe(newloc, 1) and no_bomb
+        # assume move is 'move move' i.e. a string
+        try:
+            newloc = me.loc + RDIRECTIONS[move]
+            no_bomb = not bomb_at(newloc, bombs)
+            # if already standing on the bomb it doesnt matter
+            if move == "pass": no_bomb = True
+            return loc_is_safe(newloc, 1, False) and no_bomb
+        # otherwise it's a 'bomb move' i.e. integer
+        except KeyError:
+            if BOMB_MIN_TICK <= move <= BOMB_MAX_TICK:
+                return loc_is_safe(me.loc, 1, False)
+            return False
         
     return wrapper

@@ -11,7 +11,7 @@ class Robot(object):
     def play_round(self, state):
         (board, alive_players, bombs, previous_actions) = state
         self.me = get_me()
-        current_round = get_current_round()
+        # current_round = get_current_round()
         
         if not self.me.is_alive():
             log("Fatal Error: Dead :( ... fatal, haha, get it?")
@@ -23,10 +23,67 @@ class Robot(object):
         possible_commands = get_possible_moves(self.me.loc, board, bombs)
         log("Possible commands: %s"%possible_commands)
         
+        ret = ''
         # Rule 1: defend your ass
-        return self.defend(state, current_round, possible_commands)
+        ret = self.defend(state, possible_commands)
         
-    def defend(self, state, current_round, possible_commands):
+        # Rule 2: if no need to defend, attack!
+        if not ret:
+            log("Attack mode activated. Prepare to die bitchez.")
+            ret = self.attack(state, possible_commands)
+        elif ret == "pass":
+            log("Tried returning \"pass\". Why not see if we can attack meanwhile?")
+            ret = self.attack(state, possible_commands)
+        return ret if ret else "pass"
+        
+    def attack(self, state, possible_commands, force=False):
+        # do no checks, just do it!
+        if force:
+            return BOMB_MIN_TICK
+        
+        (board, alive_players, bombs, previous_actions) = state
+        if not (len(get_bombs_for_player(self.my_id, bombs)) < BOMB_MAX_PER_PLAYER):
+            log("Cannot place more bombs.. :( Fuucking buullshit!")
+            return
+        
+        # Check if other bots around
+        for bot in (bot for bot in alive_players if bot.id != game.PLAYER_ID):
+            l = abs(self.me.loc - bot)
+            d = l.x + l.y
+            if d > ATTACK_DISTANCE:
+                log("Other bots too far away to be wasting bombs..")
+                try:
+                    prev_action = get_prev_action_for_player(self.my_id, previous_actions).action
+                    possible_commands.remove((DIRECTIONS[-(RDIRECTIONS[prev_action])]))
+                except:
+                    pass
+                ret = possible_commands.pop()
+                if ret == "pass": ret = possible_commands.pop()
+                return ret
+        
+        # Now place bomb, but first check if not kamikaze move
+        mock_bombs = bombs[:]
+        mock_state = (board, alive_players, mock_bombs, previous_actions)
+        # pushing clock 1 tick ahead
+        for bomb in mock_bombs:
+            bomb.tick -= 1
+        _backup = get_current_round()
+        for bomb_tick in range(BOMB_MIN_TICK+5, BOMB_MAX_TICK+1, 10):
+            mock_bombs.append(game.Bomb(self.my_id, self.me.loc.x, self.me.loc.y, bomb_tick))
+            game.CURRENT_ROUND = game.Round(mock_state, 1337)
+            best_move = get_best_move(self.me.loc, mock_state)
+            log("** If I'd place a bomb -> best move: %s"%best_move)
+        
+            if best_move:
+                log("Placing bomb with %s ticks"%bomb_tick)
+                return bomb_tick
+        
+        game.CURRENT_ROUND = _backup
+        log("Can't place bomb without killing myself.")
+        return
+        
+        
+    def defend(self, state, possible_commands):
         (board, alive_players, bombs, previous_actions) = state
         bots_in_sight = False
         
@@ -77,11 +134,9 @@ class Robot(object):
                 if best_move:
                     return best_move
         
-            # else fall back to randomness, except pass
-            log("Robot Panic! Choosing move at random.")
-            import random
-            if possible_commands:
-                return possible_commands[random.randint(0, len(possible_commands) - 1)]
+            # else PANIC! Haha, jk. No but seriously, auto-destruct.
+            log("No safe moves! Self-destruct sequence initiated...")
+            return self.attack(0, 0, force=True)
         
         def passive_defence():
             # check if trapped
@@ -96,7 +151,7 @@ class Robot(object):
             lnp = look_n_predict()
             if lnp and lnp[1]: return lnp[1]
                 
-            return "pass"
+            return
                 
         if not bombs:
             log("No bombs. No stress.")
