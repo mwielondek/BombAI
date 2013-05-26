@@ -34,9 +34,10 @@ class Robot(object):
             ret = ''
             bots_in_sight = False
             mock_bombs = bombs[:]
-
+            
+            _line_of_sight = line_of_sight(self.me.loc, board)
             for bot in (bot for bot in alive_players if bot.id != game.PLAYER_ID):
-                if bot.loc in line_of_sight(self.me.loc, board):
+                if bot.loc in _line_of_sight:
                     bots_in_sight = True
                     log("Bot %s in line of sight @ %s"%(bot.id,bot.loc))
                                         
@@ -47,13 +48,14 @@ class Robot(object):
                         b.ghost = True
                         mock_bombs.append(b)
 
-            _backup = get_current_round()
-            mock_state = (board, alive_players, mock_bombs, previous_actions)
-            game.CURRENT_ROUND = game.Round(mock_state, 1337)
-            best_move = get_best_move(self.me.loc, mock_state)
-            log("** If bots place bombs -> best move: %s"%best_move)
-            ret = best_move
-            game.CURRENT_ROUND = _backup
+            if bots_in_sight:
+                _backup = get_current_round()
+                mock_state = (board, alive_players, mock_bombs, previous_actions)
+                game.CURRENT_ROUND = game.Round(mock_state, 1337)
+                best_move = get_best_move(self.me.loc, mock_state)
+                log("** If bots place bombs -> best move: %s"%best_move)
+                ret = best_move
+                game.CURRENT_ROUND = _backup
             
             return (bots_in_sight, ret)
         

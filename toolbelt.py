@@ -38,7 +38,7 @@ def line_of_sight(loc, board, bombs=None):
         if board.is_floor(newloc):
             res.append(newloc)
         else: break
-    for delta in range(1,board.width-loc.x+1):
+    for delta in range(1,loc.x+1):
         newloc = loc+Location(-delta,0)
         if board.is_floor(newloc):
             res.append(newloc)
@@ -48,7 +48,7 @@ def line_of_sight(loc, board, bombs=None):
         if board.is_floor(newloc):
             res.append(newloc)
         else: break
-    for delta in range(1,board.height-loc.y+1):
+    for delta in range(1,loc.y+1):
         newloc = loc+Location(0,-delta)
         if board.is_floor(newloc):
             res.append(newloc)
