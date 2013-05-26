@@ -193,8 +193,9 @@ def AssureSafe(func):
         return ret
         
     def check(move, me, bombs):
+        if not move: return False
         newloc = me.loc + RDIRECTIONS[move]
-        no_bomb = bomb_at(newloc, bombs)
+        no_bomb = not bomb_at(newloc, bombs)
         # if already standing on the bomb it doesnt matter
         if move == "pass": no_bomb = True
         return loc_is_safe(newloc, 1) and no_bomb
